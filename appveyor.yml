@@ -1,0 +1,40 @@
+version: 0.9.0-{build}
+
+environment:
+  matrix:
+    # node.js
+    - nodejs_version: 0.12
+    # io.js
+#    - nodejs_version: 1
+    # Previous versions
+    - nodejs_version: 0.10
+    - nodejs_version: 0.8
+
+platform:
+  - x64
+  - x86
+
+install:
+  # Install required version of Node.js/Io.js
+  - ps: Install-Product node $env:nodejs_version $env:platform
+  # Update npm itself
+  - npm install -g npm
+  - set PATH=%APPDATA%\npm;%APPVEYOR_BUILD_FOLDER%\node_modules\.bin;%PATH%
+  # Install dependencies
+  - npm install
+
+# Don't actually build
+build: off
+
+test_script:
+  # Output useful info for debugging
+  - node --version
+  - npm --version
+  # Run tests
+  - npm test
+
+# Caching npm parts
+cache:
+  - C:\Users\appveyor\AppData\Roaming\npm\node_modules -> package.json  # global npm modules
+  - C:\Users\appveyor\AppData\Roaming\npm-cache -> package.json         # npm cache
+  - node_modules -> package.json                                        # local npm modules

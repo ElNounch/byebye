@@ -1,0 +1,30 @@
+language: node_js
+
+node_js:
+  - "0.12"
+  - "iojs"
+  - "0.11"
+  - "0.10"
+  - "0.8"
+  - "iojs-v1.0.4"
+
+install:
+  # Update npm itself
+  - npm install -g npm
+  - PATH="`npm bin -g`:`npm bin`:$PATH"
+  # Install dependencies
+  - npm install
+
+script:
+  # Output useful info for debugging
+  - node --version
+  - npm --version
+  # Run tests
+  - npm test
+
+# Caching npm parts
+cache:
+  directories:
+    - $HOME/.nvm
+    - $TRAVIS_BUILD_DIR/node_modules
+
