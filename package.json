@@ -1,9 +1,9 @@
 {
   "name": "byebye",
   "version": "0.9.0",
-  "description": "Kindly ask a process to quit. Kill it after a delay.",
+  "description": "Try his best to cleanly stop a process you spawned.",
   "keywords": [
-	"kill",
+    "kill",
     "exit",
     "quit",
     "signal"
@@ -13,7 +13,8 @@
     "test": "tape test/*.js | tap-spec"
   },
   "dependencies": {
-    "extend": "^2.0.1"
+    "asap": "^2.0.3",
+    "extend": "^2.0.0"
   },
   "optionalDependencies": {
     "byebye-win32": "^0.9.0"

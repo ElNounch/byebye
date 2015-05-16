@@ -1,4 +1,6 @@
+var asap = require( 'asap' )
 var extend = require( 'extend' )
+var byebye_Win32Helper
 
 var default_options = {
     timeout: 5
@@ -13,7 +15,6 @@ var enforceExit = function sendSIGKILL( target ) {
 }
 
 if( process.platform === 'win32' ) {
-    var byebye_Win32Helper
     try {
         var tmp = require( 'byebye-win32' )
         if( ! tmp.addon_loaded) {
@@ -28,28 +29,33 @@ if( process.platform === 'win32' ) {
     }
 
     if( typeof byebye_Win32Helper !== 'undefined' ) {
-        askPolitely = function sendSIGTERM( target ) {
-            if( ! byebye_Win32Helper.CloseMainWindowsByProcess( target ) ) {
-                target.kill( 'SIGINT' )
-            }
+        var askPolitely = function sendSIGTERM( target ) {
+            byebye_Win32Helper.CloseMainWindowsByProcess( target )
         }
     }
 }
 
+function asyncify( cb ) {
+    return function asyncified() {
+        var th = this
+        var args = arguments
+        asap( function asyncified() {
+            cb.apply( th, args )
+        })
+    }
+}
+
 module.exports = exports = function byebye( target ) {
-    var th = this
     var options = extend( {}, default_options )
     var callback
     var timer
+    var callbackCalled = false
 
     if( ( typeof target === 'undefined') || !( target.constructor.name === 'ChildProcess' ) ) {
         throw new Error('No process specified' )
     }
 
-    if( typeof target.pid === 'undefined') {
-        throw new Error('Invalid process specified' )
-    }
-
+    callback = function(){}
     for( var i = 1; i < arguments.length; i++) {
         var arg = arguments[i]
         switch( typeof arg ) {
@@ -57,7 +63,7 @@ module.exports = exports = function byebye( target ) {
                 options = extend( {}, default_options, arg )
                 break
             case 'function':
-                callback = arg
+                callback = asyncify( arg )
                 break
             case 'number':
                 options.timeout = arg
@@ -68,26 +74,36 @@ module.exports = exports = function byebye( target ) {
         }
     }
 
+    if( ( typeof target.pid === 'undefined') || (target.pid === 0) ) {
+        return callback( 'Invalid process specified' )
+    }
+
+    target.once('error', function byebye_OnError ( err ) {
+        if( typeof timer !== 'undefined') {
+            clearTimeout( timer )
+        }
+        callbackCalled = true
+        callback( err )
+    })
+    target.once('exit', function byebye_OnExit ( code, signal ) {
+        if( typeof timer !== 'undefined') {
+            clearTimeout( timer )
+        }
+
+        if( !callbackCalled ) {
+            callbackCalled = true
+            callback( signal, code )
+        }
+    })
+
     if( target.exitCode === null ) {
-        target.on('exit', function byebye_OnExit ( code, signal ) {
-            if( typeof timer !== 'undefined') {
-                clearTimeout( timer )
-            }
-
-            if( typeof callback !== 'undefined') {
-                callback.apply( th, [ signal, code ] )
-            }
-        })
-
+        target.stdin.end()
         askPolitely( target )
         timer = setTimeout( function byebye_TimedOut () {
             enforceExit( target )
         }, options.timeout * 1000 )
     } else {
-        // Already exited
-        if( typeof callback !== 'undefined') {
-            callback.apply( th, [ target.exitSignal, target.exitCode ] )
-        }
+        callback( target.exitSignal, target.exitCode )
     }
 
 }
