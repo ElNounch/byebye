@@ -5,10 +5,12 @@ environment:
     # node.js
     - nodejs_version: 0.12
     # io.js
-#    - nodejs_version: 1
+    - iojs_version: 2
     # Previous versions
     - nodejs_version: 0.10
     - nodejs_version: 0.8
+    # Previous versions of io.js
+    - iojs_version: 1
 
 platform:
   - x64
@@ -16,10 +18,10 @@ platform:
 
 install:
   # Install required version of Node.js/Io.js
-  - ps: Install-Product node $env:nodejs_version $env:platform
+  - ps: Install-Product node ($env:nodejs_version + $env:iojs_version) $env:platform
   # Update npm itself
-  - npm install -g npm
   - set PATH=%APPDATA%\npm;%APPVEYOR_BUILD_FOLDER%\node_modules\.bin;%PATH%
+  - npm install -g npm
   # Install dependencies
   - npm install
 
